@@ -14,6 +14,7 @@ typedef struct {
     int id;
     char prenom[MAX_CHAR];
     char nom[MAX_CHAR];
+    float notes[NB_UE];
 } ETUDIANT;
 
 void GererErreur() {
@@ -46,29 +47,48 @@ void inscription(ETUDIANT tab_etu[], int* nb_etu) {
         printf("Nombre maximum d'etudiants atteint\n");
     }
 }
-// fonction cursus
+// fonction NOTE
+void note(ETUDIANT tab_etu[], int nb_etu) {
+    int id, ue;
+    float valeur;
+    scanf("%d %d %f", &id, &ue, &valeur);
+
+    // Vérifications des entrées
+    if (id < 1 || id > nb_etu || ue < 1 || ue > NB_UE || valeur < 0 || valeur > 20) {
+        printf("Donnee incorrecte\n");
+        return;
+    }
+
+    // Enregistrement de la note
+    tab_etu[id - 1].notes[ue - 1] = valeur;
+    printf("Note enregistree\n");
+}
+
+// fonction CURSUS
 void cursus(ETUDIANT tab_etu[], int nb_etu) {
     int id;
     scanf("%d", &id); // lecture de l’identifiant
 
-    int trouve = 0;
-    for (int i = 0; i < nb_etu; i++) {
-        if (tab_etu[i].id == id) {
-            trouve = 1;
-            printf("%d %s %s\n", tab_etu[i].id, tab_etu[i].prenom, tab_etu[i].nom);
-            printf("S1 - ");
-            for (int j = 0; j < NB_UE; j++) {
-                printf("* (*)");
-                if (j < NB_UE - 1)
-                    printf(" - ");
-            }
-            printf(" - en cours\n");
-            break;
-        }
+    if (id < 1 || id > nb_etu) {
+        printf("Identifiant incorrect\n");
+        return;
     }
 
-    if (!trouve)
-        printf("Identifiant incorrect\n");
+    ETUDIANT etu = tab_etu[id - 1];
+    printf("%d %s %s\n", etu.id, etu.prenom, etu.nom);
+    printf("S1 - ");
+
+    for (int j = 0; j < NB_UE; j++) {
+        if (etu.notes[j] >= 0) // note existante
+            printf("%.1f (*)", etu.notes[j]);
+        else
+            printf("* (*)");
+
+        if (j < NB_UE - 1)
+            printf(" - ");
+    }
+
+    printf(" - en cours\n");
 }
 
 int main() {
@@ -85,6 +105,9 @@ int main() {
         }
         else if (strcmp(saisie, "INSCRIRE") == 0) { // INSCRIRE
             inscription(tab_etu, &nb_etu);
+        }
+        else if (strcmp(saisie, "NOTE") == 0) {
+            note(tab_etu, nb_etu);
         }
         else if (strcmp(saisie, "CURSUS") == 0) {
             cursus(tab_etu, nb_etu);
