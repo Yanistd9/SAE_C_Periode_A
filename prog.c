@@ -25,6 +25,33 @@ void GererErreur() {
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
+void determinerSemestreEtStatut(ETUDIANT* e) {
+    // Détermination du semestre (ici, tous en S1 tant qu’il n’y a qu’un semestre)
+    e->semestre = 1;
+
+    // Calcul du statut
+    int nb_notes = 0;
+    float somme = 0;
+
+    for (int i = 0; i < NB_UE; i++) {
+        if (e->notes[i] >= 0) { // note enregistrée
+            somme += e->notes[i];
+            nb_notes++;
+        }
+    }
+
+    if (nb_notes < NB_UE) {
+        strcpy(e->statut, "en cours");
+    }
+    else {
+        float moyenne = somme / NB_UE;
+        if (moyenne >= 10)
+            strcpy(e->statut, "ADM");
+        else
+            strcpy(e->statut, "AJ");
+    }
+}
+
 // fonction INSCRIPTION permet d'enregistrer les étudiants
 void inscription(ETUDIANT tab_etu[], int* nb_etu) {
     char prenom[MAX_CHAR_ETU], nom[MAX_CHAR_ETU];
@@ -75,33 +102,42 @@ void note(ETUDIANT tab_etu[], int nb_etu) {
 
     // Enregistrement de la note
     tab_etu[id - 1].notes[ue - 1] = valeur;
+    determinerSemestreEtStatut(&tab_etu[id - 1]);
     printf("Note enregistree\n");
 }
 
 //fonction ETUDIANTS permet d'afficher la liste d'etudiants
 void etudiants(ETUDIANT tab_etu[], int nb_etu) {
     for (int i = 0; i < nb_etu; ++i) {
-        printf("%d - %s %s - *** - ***\n", tab_etu[i].id, tab_etu[i].prenom, tab_etu[i].nom);
+        determinerSemestreEtStatut(&tab_etu[i]);
+        printf("%d - %s %s - S%d - %s\n",
+            tab_etu[i].id,
+            tab_etu[i].prenom,
+            tab_etu[i].nom,
+            tab_etu[i].semestre,
+            tab_etu[i].statut);
     }
 }
 
 // fonction CURSUS permet d'afficher la situation de l'étudiant (semestre et note)
 void cursus(ETUDIANT tab_etu[], int nb_etu) {
     int id;
-    scanf("%d", &id); // lecture de l’identifiant
+    scanf("%d", &id);
 
     if (id < 1 || id > nb_etu) {
         printf("Identifiant incorrect\n");
         return;
     }
 
-    ETUDIANT etu = tab_etu[id - 1];
-    printf("%d %s %s\n", etu.id, etu.prenom, etu.nom);
-    printf("*** - ");
+    ETUDIANT* e = &tab_etu[id - 1];
+    determinerSemestreEtStatut(e);
+
+    printf("%d %s %s\n", e->id, e->prenom, e->nom);
+    printf("S%d - ", e->semestre);
 
     for (int j = 0; j < NB_UE; j++) {
-        if (etu.notes[j] >= 0) // note existante
-            printf("%.1f (*)", etu.notes[j]);
+        if (e->notes[j] >= 0)
+            printf("%.1f (*)", e->notes[j]);
         else
             printf("* (*)");
 
@@ -109,7 +145,7 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
             printf(" - ");
     }
 
-    printf(" - ***\n");
+    printf(" - %s\n", e->statut);
 }
 
 int main() {
