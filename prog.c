@@ -100,10 +100,61 @@ void note(ETUDIANT tab_etu[], int nb_etu) {
         return;
     }
 
+    // Vérifier que l'étudiant est encore en formation
+    ETUDIANT* e = &tab_etu[id - 1];
+    determinerSemestreEtStatut(e); // on s'assure que le statut est à jour
+
+    if (strcmp(e->statut, "en cours") != 0) {
+        printf("Etudiant hors formation\n");
+        return;
+    }
+
     // Enregistrement de la note
     tab_etu[id - 1].notes[ue - 1] = valeur;
     determinerSemestreEtStatut(&tab_etu[id - 1]);
     printf("Note enregistree\n");
+}
+
+// DEMISSION : change le statut d'un étudiant "en cours" en "DEM"
+void demission(ETUDIANT tab_etu[], int nb_etu) {
+    int id;
+    scanf("%d", &id);
+
+    if (id < 1 || id > nb_etu) {
+        printf("Identifiant incorrect\n");
+        return;
+    }
+
+    ETUDIANT* e = &tab_etu[id - 1];
+    determinerSemestreEtStatut(e); // statut actuel à jour
+
+    if (strcmp(e->statut, "en cours") == 0) {
+        strcpy(e->statut, "demission");
+    }
+    else {
+        printf("Demission impossible\n");
+    }
+}
+
+// DEFAILLANCE : change le statut d'un étudiant "en cours" en "DEF"
+void defaillance(ETUDIANT tab_etu[], int nb_etu) {
+    int id;
+    scanf("%d", &id);
+
+    if (id < 1 || id > nb_etu) {
+        printf("Identifiant incorrect\n");
+        return;
+    }
+
+    ETUDIANT* e = &tab_etu[id - 1];
+    determinerSemestreEtStatut(e); // statut à jour
+
+    if (strcmp(e->statut, "en cours") == 0) {
+        strcpy(e->statut, "defaillance");
+    }
+    else {
+        printf("Defaillance impossible\n");
+    }
 }
 
 //fonction ETUDIANTS permet d'afficher la liste d'etudiants
@@ -171,6 +222,12 @@ int main() {
         else if (strcmp(saisie, "ETUDIANTS") == 0) {
             etudiants(tab_etu, nb_etu);
         }
+        else if (strcmp(saisie, "DEMISSION") == 0) {
+            demission(tab_etu, nb_etu);
+        }
+        else if (strcmp(saisie, "DEFAILLANCE") == 0) {
+            defaillance(tab_etu, nb_etu);
+        }
         else {
             printf("Commande inconnue\n");
         }
@@ -178,4 +235,3 @@ int main() {
     }
     return 0;
 }
-
