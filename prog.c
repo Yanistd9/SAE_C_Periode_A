@@ -151,7 +151,6 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
 int main() {
     ETUDIANT tab_etu[MAX_NB_ETU];
     char saisie[MAX_CHAR_ETU];
-    int nb_der = 0;
     int nb_etu = 0;
 
     while (1) {
@@ -179,3 +178,4 @@ int main() {
     }
     return 0;
 }
+
