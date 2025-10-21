@@ -7,30 +7,32 @@
 enum {
     MAX_CHAR_ETU = 30,
     MAX_NB_ETU = 180,
-    NB_UE = 6
+    NB_UE = 6,
+    NB_SEM = 6,
+    NB_BILAN = 3
 };
 
 typedef struct {
     int id;
     char prenom[MAX_CHAR_ETU];
     char nom[MAX_CHAR_ETU];
-    float notes[NB_UE];
+    float notes[NB_SEM + 1][NB_UE];    
+    char codes[NB_SEM + 1][NB_UE][4];  
+    float rcue[NB_BILAN + 1][NB_UE];   
+    char codes_rcue[NB_BILAN + 1][NB_UE][4];
     int semestre;
     char statut[15];
 } ETUDIANT;
 
-// Permet d'ignorer les caractères restants sur la ligne
 void GererErreur() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
-// INSCRIRE : ajoute un étudiant
 void inscription(ETUDIANT tab_etu[], int* nb_etu) {
     char prenom[MAX_CHAR_ETU], nom[MAX_CHAR_ETU];
     scanf("%s %s", prenom, nom);
 
-    // Vérifie doublon
     for (int i = 0; i < *nb_etu; i++) {
         if (strcmp(tab_etu[i].prenom, prenom) == 0 &&
             strcmp(tab_etu[i].nom, nom) == 0) {
@@ -39,18 +41,30 @@ void inscription(ETUDIANT tab_etu[], int* nb_etu) {
         }
     }
 
-    // Enregistre l'étudiant
     if (*nb_etu < MAX_NB_ETU) {
-        tab_etu[*nb_etu].id = *nb_etu + 1;
-        strcpy(tab_etu[*nb_etu].prenom, prenom);
-        strcpy(tab_etu[*nb_etu].nom, nom);
-        for (int i = 0; i < NB_UE; i++)
-            tab_etu[*nb_etu].notes[i] = -1;
+        ETUDIANT* e = &tab_etu[*nb_etu];
+        e->id = *nb_etu + 1;
+        strcpy(e->prenom, prenom);
+        strcpy(e->nom, nom);
 
-        tab_etu[*nb_etu].semestre = 1;           // S1 au départ
-        strcpy(tab_etu[*nb_etu].statut, "en cours");
+        for (int s = 1; s <= NB_SEM; s++) {
+            for (int j = 0; j < NB_UE; j++) {
+                e->notes[s][j] = -1;
+                strcpy(e->codes[s][j], "*");
+            }
+        }
 
-        printf("Inscription enregistree (%d)\n", tab_etu[*nb_etu].id);
+        for (int b = 1; b <= NB_BILAN; b++) {
+            for (int j = 0; j < NB_UE; j++) {
+                e->rcue[b][j] = -1;
+                strcpy(e->codes_rcue[b][j], "*");
+            }
+        }
+
+        e->semestre = 1;
+        strcpy(e->statut, "en cours");
+
+        printf("Inscription enregistree (%d)\n", e->id);
         (*nb_etu)++;
     }
     else {
@@ -58,7 +72,6 @@ void inscription(ETUDIANT tab_etu[], int* nb_etu) {
     }
 }
 
-// NOTE : attribue une note si l'étudiant est en cours
 void note(ETUDIANT tab_etu[], int nb_etu) {
     int id, ue;
     float valeur;
@@ -84,11 +97,10 @@ void note(ETUDIANT tab_etu[], int nb_etu) {
         return;
     }
 
-    e->notes[ue - 1] = valeur;
+    e->notes[e->semestre][ue - 1] = valeur;
     printf("Note enregistree\n");
 }
 
-// DEMISSION : statut -> DEM
 void demission(ETUDIANT tab_etu[], int nb_etu) {
     int id;
     scanf("%d", &id);
@@ -108,7 +120,6 @@ void demission(ETUDIANT tab_etu[], int nb_etu) {
     }
 }
 
-// DEFAILLANCE : statut -> DEF
 void defaillance(ETUDIANT tab_etu[], int nb_etu) {
     int id;
     scanf("%d", &id);
@@ -128,41 +139,127 @@ void defaillance(ETUDIANT tab_etu[], int nb_etu) {
     }
 }
 
-// JURY : calcule le statut des étudiants (semestre impair)
 void jury(ETUDIANT tab_etu[], int nb_etu) {
+    int semestre;
+    scanf("%d", &semestre);
+
+    if (semestre < 1 || semestre > NB_SEM) {
+        printf("Semestre incorrect\n");
+        return;
+    }
+
+    int notes_manquantes = 0;
+    int nb_etudiants = 0;
+
+    for (int i = 0; i < nb_etu; i++) {
+        ETUDIANT* e = &tab_etu[i];
+        if (e->semestre == semestre && strcmp(e->statut, "en cours") == 0) {
+            for (int j = 0; j < NB_UE; j++) {
+                if (e->notes[semestre][j] < 0) {
+                    notes_manquantes = 1;
+                    break;
+                }
+            }
+        }
+        if (notes_manquantes)
+            break;
+    }
+
+    if (notes_manquantes) {
+        printf("Des notes sont manquantes\n");
+        return;
+    }
+
     for (int i = 0; i < nb_etu; i++) {
         ETUDIANT* e = &tab_etu[i];
 
-        // Ne traite que les étudiants "en cours"
-        if (strcmp(e->statut, "en cours") == 0) {
-            int nb_notes = 0;
-            float somme = 0.0;
+        if (e->semestre == semestre && strcmp(e->statut, "en cours") == 0) {
+            nb_etudiants++;
 
             for (int j = 0; j < NB_UE; j++) {
-                if (e->notes[j] >= 0) {
-                    nb_notes++;
-                    somme += e->notes[j];
+                float note = e->notes[semestre][j];
+                if (note >= 10.0) strcpy(e->codes[semestre][j], "ADM");
+                else strcpy(e->codes[semestre][j], "AJ");
+            }
+
+            if (semestre % 2 == 1) {
+                float somme = 0;
+                for (int j = 0; j < NB_UE; j++) somme += e->notes[semestre][j];
+                float moyenne = somme / NB_UE;
+
+                if (moyenne >= 10.0) {
+                    e->semestre = semestre + 1;
+                    strcpy(e->statut, "en cours");
+                    for (int j = 0; j < NB_UE; j++) {
+                        e->notes[e->semestre][j] = -1;
+                        strcpy(e->codes[e->semestre][j], "*");
+                    }
+                }
+                else {
+                    strcpy(e->statut, "AJ");
                 }
             }
 
-            if (nb_notes < NB_UE) {
-                // Pas toutes les notes => reste "en cours"
-                continue;
-            }
+            else if (semestre % 2 == 0) {
+                int bilan = semestre / 2;
+                int nb_adm = 0, nb_ajb = 0;
 
-            float moyenne = somme / NB_UE;
-            if (moyenne >= 10) {
-                strcpy(e->statut, "ADM");
-                e->semestre++;  // Passe au semestre suivant
-            }
-            else {
-                strcpy(e->statut, "AJ");
+                for (int j = 0; j < NB_UE; j++) {
+                    float s1 = e->notes[semestre - 1][j];
+                    float s2 = e->notes[semestre][j];
+                    float moy = (s1 + s2) / 2.0;
+                    e->rcue[bilan][j] = moy;
+
+                    if (moy >= 10.0) {
+                        strcpy(e->codes_rcue[bilan][j], "ADM");
+                        nb_adm++;
+                        if (!strcmp(e->codes[semestre - 1][j], "AJ"))
+                            strcpy(e->codes[semestre - 1][j], "ADC");
+                        if (!strcmp(e->codes[semestre][j], "AJ"))
+                            strcpy(e->codes[semestre][j], "ADC");
+                    }
+                    else if (moy >= 8.0) strcpy(e->codes_rcue[bilan][j], "AJ");
+                    else {
+                        strcpy(e->codes_rcue[bilan][j], "AJB");
+                        nb_ajb++;
+                    }
+                }
+
+                if (bilan < 3) {
+                    if (nb_adm >= 4 && nb_ajb == 0) {
+                        e->semestre = semestre + 1;
+                        strcpy(e->statut, "en cours");
+                        for (int j = 0; j < NB_UE; j++) {
+                            e->notes[e->semestre][j] = -1;
+                            strcpy(e->codes[e->semestre][j], "*");
+                        }
+                    }
+                    else {
+                        strcpy(e->statut, "ajourne");
+                    }
+                }
+
+                if (semestre == 6) {
+                    int toutes_valides = 1;
+                    for (int b = 1; b <= 3; b++) {
+                        for (int j = 0; j < NB_UE; j++) {
+                            if (strcmp(e->codes_rcue[b][j], "ADM") != 0) {
+                                toutes_valides = 0;
+                                break;
+                            }
+                        }
+                        if (!toutes_valides) break;
+                    }
+                    if (toutes_valides) strcpy(e->statut, "diplome");
+                    else strcpy(e->statut, "ajourne");
+                }
             }
         }
     }
+
+    printf("Semestre termine pour %d etudiant(s)\n", nb_etudiants);
 }
 
-// ETUDIANTS : affiche tous les étudiants
 void etudiants(ETUDIANT tab_etu[], int nb_etu) {
     for (int i = 0; i < nb_etu; ++i) {
         printf("%d - %s %s - S%d - %s\n",
@@ -174,7 +271,6 @@ void etudiants(ETUDIANT tab_etu[], int nb_etu) {
     }
 }
 
-// CURSUS : affiche le cursus d'un étudiant
 void cursus(ETUDIANT tab_etu[], int nb_etu) {
     int id;
     scanf("%d", &id);
@@ -187,19 +283,108 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
     ETUDIANT* e = &tab_etu[id - 1];
 
     printf("%d %s %s\n", e->id, e->prenom, e->nom);
-    printf("S%d - ", e->semestre);
 
-    for (int j = 0; j < NB_UE; j++) {
-        if (e->notes[j] >= 0)
-            printf("%.1f (*)", e->notes[j]);
+    for (int s = 1; s <= NB_SEM; s++) {
+        int bilan = s / 2;
+
+        printf("S%d - ", s);
+        for (int j = 0; j < NB_UE; j++) {
+            if (e->notes[s][j] >= 0)
+                printf("%.1f (%s)", e->notes[s][j], e->codes[s][j]);
+            else
+                printf("* (*)");
+
+            if (j < NB_UE - 1)
+                printf(" - ");
+        }
+        printf(" -");
+
+        if (e->semestre == s)
+            printf(" %s\n", e->statut);
         else
-            printf("* (*)");
+            printf("\n");
 
-        if (j < NB_UE - 1)
-            printf(" - ");
+        if (s % 2 == 0) {
+            printf("B%d - ", bilan);
+            for (int j = 0; j < NB_UE; j++) {
+                if (e->rcue[bilan][j] >= 0)
+                    printf("%.1f (%s)", e->rcue[bilan][j], e->codes_rcue[bilan][j]);
+                else
+                    printf("* (*)");
+
+                if (j < NB_UE - 1)
+                    printf(" - ");
+            }
+
+            if (e->semestre == s + 1 && strcmp(e->statut, "en cours") == 0)
+                printf(" - en cours\n");
+            else if (e->semestre > s + 1)
+                printf("\n");
+            else if (s == NB_SEM)
+                printf(" - %s\n", e->statut);
+            else
+                printf("\n");
+        }
+    }
+}
+
+void bilan(ETUDIANT tab_etu[], int nb_etu) {
+    int annee;
+    scanf("%d", &annee);
+
+    if (annee < 1 || annee > 3) {
+        printf("Annee incorrecte\n");
+        return;
     }
 
-    printf(" - %s\n", e->statut);
+    int s_first = 2 * annee - 1;
+    int s_last = 2 * annee;
+
+    int c_dem = 0, c_def = 0, c_encours = 0, c_aj = 0, c_passe = 0;
+
+    for (int i = 0; i < nb_etu; i++) {
+        ETUDIANT* e = &tab_etu[i];
+
+        if (e->semestre < s_first && strcmp(e->statut, "DEM") != 0 && strcmp(e->statut, "DEF") != 0)
+            continue;
+
+        int in_year_now = (e->semestre == s_first || e->semestre == s_last);
+
+        if (annee < 3) {
+            if (e->semestre >= s_last + 1) {
+                c_passe++;
+                continue;
+            }
+        }
+        else {
+            if (strcmp(e->statut, "diplome") == 0) {
+                c_passe++;
+                continue;
+            }
+        }
+
+        if (in_year_now) {
+            if (strcmp(e->statut, "DEM") == 0) {
+                c_dem++;
+            }
+            else if (strcmp(e->statut, "DEF") == 0) {
+                c_def++;
+            }
+            else if (strcmp(e->statut, "en cours") == 0) {
+                c_encours++;
+            }
+            else if (strcmp(e->statut, "ajourne") == 0) {
+                c_aj++;
+            }
+        }
+    }
+
+    printf("BILAN %d\n", annee);
+    printf("%d demission(s)\n", c_dem);
+    printf("%d defaillance(s)\n", c_def);
+    printf("%d en cours\n", c_encours);
+    printf("%d ajourne(s)\n", c_aj);
+    printf("%d passe(s)\n", c_passe);
 }
 
 int main() {
@@ -233,6 +418,9 @@ int main() {
         }
         else if (strcmp(saisie, "JURY") == 0) {
             jury(tab_etu, nb_etu);
+        }
+        else if (strcmp(saisie, "BILAN") == 0) {
+            bilan(tab_etu, nb_etu);
         }
         else {
             printf("Commande inconnue\n");
