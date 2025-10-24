@@ -330,7 +330,10 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
                     printf("* (*)");
                 if (j < NB_UE - 1) printf(" - ");
             }
-            printf(" -\n");
+            if (s == e->semestre)
+                printf(" - %s\n", e->statut);
+            else
+                printf(" - %s\n", e->statut_sem[s]);
         }
     }
 }
@@ -352,37 +355,21 @@ void bilan(ETUDIANT tab_etu[], int nb_etu) {
     for (int i = 0; i < nb_etu; i++) {
         ETUDIANT* e = &tab_etu[i];
 
-        if (e->semestre < s_first && strcmp(e->statut, "DEM") != 0 && strcmp(e->statut, "DEF") != 0)
+        if ((strcmp(e->statut, "demission") == 0 || strcmp(e->statut, "defaillance") == 0)
+            && e->semestre < s_first)
             continue;
-
-        int in_year_now = (e->semestre == s_first || e->semestre == s_last);
-
-        if (annee < 3) {
-            if (e->semestre >= s_last + 1) {
-                c_passe++;
-                continue;
-            }
-        }
-        else {
-            if (strcmp(e->statut, "diplome") == 0) {
-                c_passe++;
-                continue;
-            }
-        }
-
-        if (in_year_now) {
-            if (strcmp(e->statut, "DEM") == 0) {
+        if (e->semestre == s_first || e->semestre == s_last) {
+            if (strcmp(e->statut, "demission") == 0)
                 c_dem++;
-            }
-            else if (strcmp(e->statut, "DEF") == 0) {
+            else if (strcmp(e->statut, "defaillance") == 0)
                 c_def++;
-            }
-            else if (strcmp(e->statut, "en cours") == 0) {
+            else if (strcmp(e->statut, "en cours") == 0)
                 c_encours++;
-            }
-            else if (strcmp(e->statut, "ajourne") == 0) {
+            else if (strcmp(e->statut, "ajourne") == 0)
                 c_aj++;
-            }
+        }
+        else if (e->semestre > s_last || strcmp(e->statut, "diplome") == 0) {
+            c_passe++;
         }
     }
 
@@ -393,6 +380,7 @@ void bilan(ETUDIANT tab_etu[], int nb_etu) {
     printf("%d ajourne(s)\n", c_aj);
     printf("%d passe(s)\n", c_passe);
 }
+
 
 int main() {
     ETUDIANT tab_etu[MAX_NB_ETU];
