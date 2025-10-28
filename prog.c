@@ -118,10 +118,13 @@ void demission(ETUDIANT tab_etu[], int nb_etu) {
 
     if (strcmp(e->statut, "en cours") == 0) {
         strcpy(e->statut, "demission");
+        strcpy(e->statut_sem[e->semestre], "demission");
+        printf("Demission enregistree\n");
     }
     else {
-        printf("Demission impossible\n");
+        printf("Etudiant hors formation\n");
     }
+
 }
 
 void defaillance(ETUDIANT tab_etu[], int nb_etu) {
@@ -137,10 +140,13 @@ void defaillance(ETUDIANT tab_etu[], int nb_etu) {
 
     if (strcmp(e->statut, "en cours") == 0) {
         strcpy(e->statut, "defaillance");
+        strcpy(e->statut_sem[e->semestre], "defaillance");
+        printf("Defaillance enregistree\n");
     }
     else {
-        printf("Defaillance impossible\n");
+        printf("Etudiant hors formation\n");
     }
+
 }
 
 void jury(ETUDIANT tab_etu[], int nb_etu) {
@@ -234,6 +240,19 @@ void jury(ETUDIANT tab_etu[], int nb_etu) {
                     }
                 }
 
+                if (bilan == 2) {
+                    for (int j = 0; j < NB_UE; j++) {
+                        if (strcmp(e->codes_rcue[2][j], "ADM") == 0) {
+                            if (strcmp(e->codes_rcue[1][j], "AJ") == 0)
+                                strcpy(e->codes_rcue[1][j], "ADS");
+                            if (strcmp(e->codes[1][j], "AJ") == 0)
+                                strcpy(e->codes[1][j], "ADS");
+                            if (strcmp(e->codes[2][j], "AJ") == 0)
+                                strcpy(e->codes[2][j], "ADS");
+                        }
+                    }
+                }
+
                 if (bilan < 3) {
                     if (nb_adm >= 4 && nb_ajb == 0) {
                         strcpy(e->statut_sem[semestre], "ADM");  
@@ -318,9 +337,9 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
         if (s == e->semestre)
             printf(" - %s\n", e->statut);
         else
-            printf(" - %s\n", e->statut_sem[s]); 
+            printf(" -\n");
 
-        if (s % 2 == 0 && e->semestre > s) {
+       if (s % 2 == 0 && e->rcue[s / 2][0] >= 0) {
             int b = s / 2;
             printf("B%d - ", b);
             for (int j = 0; j < NB_UE; j++) {
@@ -330,10 +349,7 @@ void cursus(ETUDIANT tab_etu[], int nb_etu) {
                     printf("* (*)");
                 if (j < NB_UE - 1) printf(" - ");
             }
-            if (s == e->semestre)
-                printf(" - %s\n", e->statut);
-            else
-                printf(" - %s\n", e->statut_sem[s]);
+            printf(" -\n");
         }
     }
 }
@@ -358,7 +374,7 @@ void bilan(ETUDIANT tab_etu[], int nb_etu) {
         if ((strcmp(e->statut, "demission") == 0 || strcmp(e->statut, "defaillance") == 0)
             && e->semestre < s_first)
             continue;
-        if (e->semestre == s_first || e->semestre == s_last) {
+        if (e->semestre >= s_first && e->semestre <= s_last) {
             if (strcmp(e->statut, "demission") == 0)
                 c_dem++;
             else if (strcmp(e->statut, "defaillance") == 0)
